@@ -1,7 +1,8 @@
 package infra
 
 import (
-	"config"
+	"fmt"
+	"github.com/balanatarajan/baum/config"
 	"net"
 	"strings"
 )
@@ -12,31 +13,19 @@ type srvConfig struct {
 	port string
 }
 
-// Service handler registered by the application to do real work
-type ServiceHandler interface {
-	HandleEvents() error
-}
-
-// Type declaration for concurency model
-type ConcurrencyModel int
-
-// Different concurrency models at work
-const (
-	RoPC   ConcurrencyModel = iota // Go-Routine Per Connection Model
-	RoPool                         // Routine Pool
-)
-
 // Feel comfortable with the name Acceptor from Acceptor pattern from
 // Dr. Schmidt et. al. We will wrap listener behind the acceptor interface
 type Acceptor struct {
 	Cm       ConcurrencyModel
-	Sh       *ServiceHandler
+	Sh       ServiceHandler
 	listener net.Listener
 }
 
 const host_default = "127.0.0.1"
 const port_default = "10007"
 const protocol_default = "tcp"
+
+var defSrvConfig *srvConfig = defaultConfig()
 
 func defaultConfig() *srvConfig {
 	return &srvConfig{host: host_default + ":", port: port_default,
@@ -46,7 +35,7 @@ func defaultConfig() *srvConfig {
 func extractConfig(config *config.Config) *srvConfig {
 
 	if config == nil {
-		return defaultConfig()
+		return defSrvConfig
 	}
 
 	var s srvConfig
@@ -94,7 +83,12 @@ func (a *Acceptor) Open(config *config.Config) error {
 func (a *Acceptor) Run() error {
 
 	for {
-		_, _ = a.listener.Accept()
+		conn, _ := a.listener.Accept()
+		if a.Cm == RoPC {
+			go a.Sh.HandleEvents(conn)
+		} else {
+			fmt.Println("ConcurrencyModel not set")
+		}
 	}
 }
 

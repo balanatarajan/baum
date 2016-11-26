@@ -1,6 +1,6 @@
 package config
 
-import "config/cdb"
+import "github.com/balanatarajan/baum/config/cdb"
 import "fmt"
 
 type Config struct {

@@ -1,11 +1,43 @@
 package infra
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"testing"
 )
 
-func TestDefaults(t *testing.T) {
+type myAccSH struct {
+	cnt int // Number of times we are called
+}
+
+func (m *myAccSH) HandleEvents(c net.Conn) error {
+	(*m).cnt++
+
+	nr := bufio.NewReader(c)
+	fmt.Println(nr.Buffered())
+
+	for {
+		op := make([]byte, 5)
+
+		n, err := nr.Read(op)
+
+		if n == 4 || err != nil {
+			break
+		}
+
+		if n != 0 {
+			fmt.Println("Got ", string(op[:]))
+		}
+
+	}
+
+	return nil
+}
+
+var sh myAccSH
+
+func TestAccDefaults(t *testing.T) {
 
 	s := extractConfig(nil)
 
@@ -20,8 +52,10 @@ func TestDefaults(t *testing.T) {
 		t.Fatal("Unexpected defaults returned")
 	}
 
-	var a Acceptor
+	a := Acceptor{Sh: &sh, Cm: RoPC}
+
 	err := a.Open(nil)
+	defer a.Close()
 
 	if err != nil {
 		t.Fatal("Couldn't open acceptor", err)

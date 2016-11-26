@@ -1,8 +1,8 @@
 package main
 
 import (
-	"config"
 	"fmt"
+	"github.com/balanatarajan/baum/config"
 )
 
 type dbConfig struct {
